@@ -3,7 +3,11 @@ export function speakTokenAnnouncement({ tokenNumber, doctorName, room, enabled 
     return;
   }
 
-  window.speechSynthesis.cancel();
+  const synth = window.speechSynthesis;
+  synth.cancel();
+  if (synth.paused) {
+    synth.resume();
+  }
 
   const doctorPart = doctorName ? `, please proceed to ${doctorName}` : ', please proceed to the consultation room';
   const roomPart = room ? `, Room ${room}` : '';
@@ -13,8 +17,9 @@ export function speakTokenAnnouncement({ tokenNumber, doctorName, room, enabled 
   utterance.lang = 'en-IN';
   utterance.rate = 0.92;
   utterance.pitch = 1.0;
+  utterance.volume = 1.0;
 
-  const voices = window.speechSynthesis.getVoices();
+  const voices = synth.getVoices();
   const preferredVoice =
     voices.find((v) => v.lang.includes('en-IN')) ||
     voices.find((v) => v.lang.startsWith('en'));
@@ -23,5 +28,7 @@ export function speakTokenAnnouncement({ tokenNumber, doctorName, room, enabled 
     utterance.voice = preferredVoice;
   }
 
-  window.speechSynthesis.speak(utterance);
+  setTimeout(() => {
+    synth.speak(utterance);
+  }, 50);
 }

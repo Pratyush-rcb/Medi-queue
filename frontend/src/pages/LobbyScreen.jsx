@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { api, socket } from '../api';
 import { Link } from 'react-router-dom';
 import { Activity, Clock, ArrowLeft, Volume2, VolumeX } from 'lucide-react';
@@ -11,6 +11,7 @@ export default function LobbyScreen() {
   const [time, setTime] = useState(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   const today = new Date().toISOString().split('T')[0];
 
+  const doctorsRef = useRef([]);
   const voiceEnabledRef = useRef(true);
   const lastAnnouncedByDocRef = useRef({});
   const hasInitializedRef = useRef(false);
@@ -19,30 +20,40 @@ export default function LobbyScreen() {
     voiceEnabledRef.current = voiceEnabled;
   }, [voiceEnabled]);
 
-  // Unlock browser speech synthesis automatically on any first interaction if needed
   useEffect(() => {
-    const unlockAudio = () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        window.speechSynthesis.getVoices();
-        const silent = new SpeechSynthesisUtterance('');
-        silent.volume = 0;
-        window.speechSynthesis.speak(silent);
-      }
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-    };
+    doctorsRef.current = doctors;
+  }, [doctors]);
 
-    window.addEventListener('pointerdown', unlockAudio);
-    window.addEventListener('keydown', unlockAudio);
-    return () => {
-      window.removeEventListener('pointerdown', unlockAudio);
-      window.removeEventListener('keydown', unlockAudio);
-    };
+  const unlockSpeech = useCallback(() => {
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      window.speechSynthesis.getVoices();
+      const silent = new SpeechSynthesisUtterance(' ');
+      silent.volume = 0;
+      window.speechSynthesis.speak(silent);
+    }
   }, []);
 
-  const fetchAllQueues = async (docList) => {
+  useEffect(() => {
+    const onFirstGesture = () => {
+      unlockSpeech();
+      window.removeEventListener('pointerdown', onFirstGesture);
+      window.removeEventListener('keydown', onFirstGesture);
+    };
+
+    window.addEventListener('pointerdown', onFirstGesture);
+    window.addEventListener('keydown', onFirstGesture);
+    return () => {
+      window.removeEventListener('pointerdown', onFirstGesture);
+      window.removeEventListener('keydown', onFirstGesture);
+    };
+  }, [unlockSpeech]);
+
+  const fetchAllQueues = useCallback(async (docList) => {
+    const targetDocs = docList && docList.length > 0 ? docList : doctorsRef.current;
+    if (!targetDocs || targetDocs.length === 0) return;
+
     const map = {};
-    for (const doc of docList) {
+    for (const doc of targetDocs) {
       const res = await api.get(`/queue/${doc._id}/${today}`);
       map[doc._id] = res.data;
 
@@ -64,27 +75,45 @@ export default function LobbyScreen() {
 
     hasInitializedRef.current = true;
     setQueues(map);
-  };
+  }, [today]);
 
   useEffect(() => {
     const timer = setInterval(() => {
       setTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 10000);
 
+    const handleLobbyUpdate = () => {
+      fetchAllQueues();
+    };
+
     api.get('/doctors').then((res) => {
       setDoctors(res.data);
+      doctorsRef.current = res.data;
       fetchAllQueues(res.data);
-      socket.on('lobby_update', () => fetchAllQueues(res.data));
     });
+
+    socket.on('lobby_update', handleLobbyUpdate);
 
     return () => {
       clearInterval(timer);
-      socket.off('lobby_update');
+      socket.off('lobby_update', handleLobbyUpdate);
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [today]);
+  }, [fetchAllQueues]);
+
+  const toggleVoice = () => {
+    setVoiceEnabled((prev) => {
+      const next = !prev;
+      if (next) {
+        unlockSpeech();
+      } else if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-6 sm:p-10">
@@ -107,7 +136,7 @@ export default function LobbyScreen() {
             <div className="flex items-center justify-end gap-2.5 mt-2">
               <button
                 type="button"
-                onClick={() => setVoiceEnabled((prev) => !prev)}
+                onClick={toggleVoice}
                 className={`text-xs font-bold px-3 py-1 rounded-lg inline-flex items-center gap-1.5 transition cursor-pointer ${
                   voiceEnabled
                     ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40'

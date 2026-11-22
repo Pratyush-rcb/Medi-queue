@@ -223,8 +223,14 @@ app.post('/api/auth/demo-login', async (req, res) => {
     }
 
     const today = new Date().toISOString().split('T')[0];
-    const existingCount = await Appointment.countDocuments({ doctorId: demoDoctor._id, date: today });
-    if (existingCount === 0) {
+    const waitingOnlyCount = await Appointment.countDocuments({
+      doctorId: demoDoctor._id,
+      date: today,
+      status: 'WAITING',
+    });
+
+    if (waitingOnlyCount === 0) {
+      await Appointment.deleteMany({ doctorId: demoDoctor._id, date: today });
       await Appointment.create([
         {
           patientName: 'Ananya Singh',

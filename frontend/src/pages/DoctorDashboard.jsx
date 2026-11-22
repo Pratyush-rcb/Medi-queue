@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, socket } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { speakTokenAnnouncement } from '../utils/voiceAnnouncer';
 import {
   Play,
   CheckCircle,
@@ -70,6 +71,18 @@ export default function DoctorDashboard() {
   }, [activePatient?._id]);
 
   const updateStatus = async (id, status) => {
+    if (status === 'IN_CONSULTATION') {
+      const targetToken = queue.find((q) => q._id === id);
+      const activeDoctor = doctors.find((d) => d._id === selectedDoc);
+      if (targetToken) {
+        speakTokenAnnouncement({
+          tokenNumber: targetToken.tokenNumber,
+          doctorName: activeDoctor?.name || user?.name,
+          room: activeDoctor?.roomNumber,
+          enabled: true,
+        });
+      }
+    }
     await api.patch(`/appointments/${id}/status`, { status });
   };
 
