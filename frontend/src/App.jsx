@@ -8,6 +8,7 @@ import AdminPanel from './pages/AdminPanel';
 import LobbyScreen from './pages/LobbyScreen';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import VerifyToken from './pages/VerifyToken';
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
@@ -126,6 +127,7 @@ export default function App() {
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/lobby" element={<LobbyScreen />} />
+              <Route path="/verify/:id" element={<VerifyToken />} />
               <Route path="/" element={<ProtectedRoute allowedRoles={['PATIENT', 'ADMIN']}><PatientBooking /></ProtectedRoute>} />
               <Route path="/my-tokens" element={<ProtectedRoute allowedRoles={['PATIENT', 'ADMIN']}><MyTokens /></ProtectedRoute>} />
               <Route path="/doctor" element={<ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}><DoctorDashboard /></ProtectedRoute>} />

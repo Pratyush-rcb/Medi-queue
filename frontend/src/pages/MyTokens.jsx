@@ -40,6 +40,7 @@ export default function MyTokens() {
           {tokens.map((t) => {
             const hasReport = Boolean(t.prescription?.diagnosis);
             const isExpanded = openReportId === t._id;
+            const verifyUrl = `${window.location.origin}/verify/${t._id}`;
 
             return (
               <div key={t._id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
@@ -66,8 +67,9 @@ export default function MyTokens() {
                     </p>
                   </div>
 
-                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 shrink-0">
-                    <QRCodeSVG value={t._id} size={95} />
+                  <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-200 shrink-0 text-center">
+                    <QRCodeSVG value={verifyUrl} size={95} />
+                    <p className="text-[10px] font-semibold text-slate-400 mt-1">Scan to Verify</p>
                   </div>
                 </div>
 

@@ -2,15 +2,22 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
-import { Activity, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Activity, Lock, Mail, ArrowRight, Sparkles, UserCheck, Stethoscope, ShieldCheck } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [demoRole, setDemoRole] = useState('');
   const { loginUser } = useAuth();
   const navigate = useNavigate();
+
+  const redirectByRole = (role) => {
+    if (role === 'DOCTOR') navigate('/doctor');
+    else if (role === 'ADMIN') navigate('/admin');
+    else navigate('/');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -19,13 +26,25 @@ export default function Login() {
     try {
       const res = await api.post('/auth/login', { email, password });
       loginUser(res.data.token, res.data.user);
-      if (res.data.user.role === 'DOCTOR') navigate('/doctor');
-      else if (res.data.user.role === 'ADMIN') navigate('/admin');
-      else navigate('/');
+      redirectByRole(res.data.user.role);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid credentials');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDemoLogin = async (role) => {
+    setError('');
+    setDemoRole(role);
+    try {
+      const res = await api.post('/auth/demo-login', { role });
+      loginUser(res.data.token, res.data.user);
+      redirectByRole(res.data.user.role);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Demo login failed');
+    } finally {
+      setDemoRole('');
     }
   };
 
@@ -68,7 +87,45 @@ export default function Login() {
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md bg-white p-8 rounded-2xl shadow-sm border border-slate-200">
           <h2 className="text-2xl font-extrabold text-slate-900">Sign in to Portal</h2>
-          <p className="text-sm text-slate-500 mt-1 mb-6">Enter your registered email and password</p>
+          <p className="text-sm text-slate-500 mt-1 mb-5">Enter your registered email and password</p>
+
+          {/* 1-Click Recruiter Demo Box */}
+          <div className="mb-6 p-4 rounded-xl bg-teal-50/70 border border-teal-200 space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-teal-900">
+              <Sparkles size={14} className="text-teal-600" /> Instant Demo Access (No Signup)
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                disabled={Boolean(demoRole)}
+                onClick={() => handleDemoLogin('PATIENT')}
+                className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl bg-white hover:bg-teal-600 text-slate-800 hover:text-white border border-teal-200 text-xs font-bold transition cursor-pointer disabled:opacity-50"
+              >
+                <UserCheck size={15} />
+                <span>{demoRole === 'PATIENT' ? 'Loading...' : 'Patient'}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={Boolean(demoRole)}
+                onClick={() => handleDemoLogin('DOCTOR')}
+                className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl bg-white hover:bg-teal-600 text-slate-800 hover:text-white border border-teal-200 text-xs font-bold transition cursor-pointer disabled:opacity-50"
+              >
+                <Stethoscope size={15} />
+                <span>{demoRole === 'DOCTOR' ? 'Loading...' : 'Doctor'}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={Boolean(demoRole)}
+                onClick={() => handleDemoLogin('ADMIN')}
+                className="flex flex-col items-center justify-center gap-1 py-2.5 px-2 rounded-xl bg-white hover:bg-teal-600 text-slate-800 hover:text-white border border-teal-200 text-xs font-bold transition cursor-pointer disabled:opacity-50"
+              >
+                <ShieldCheck size={15} />
+                <span>{demoRole === 'ADMIN' ? 'Loading...' : 'Admin'}</span>
+              </button>
+            </div>
+          </div>
 
           {error && (
             <div className="p-3.5 mb-5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm font-medium">
@@ -108,8 +165,8 @@ export default function Login() {
             </div>
 
             <button
-              disabled={loading}
-              className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-semibold shadow-sm flex items-center justify-center gap-2 transition cursor-pointer"
+              disabled={loading || Boolean(demoRole)}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white py-3 rounded-xl font-semibold shadow-sm flex items-center justify-center gap-2 transition cursor-pointer disabled:opacity-50"
             >
               {loading ? 'Signing in...' : <>Continue to Dashboard <ArrowRight size={17} /></>}
             </button>
