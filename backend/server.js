@@ -175,6 +175,99 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.post('/api/auth/demo-login', async (req, res) => {
+  try {
+    const { role } = req.body; // 'PATIENT' | 'DOCTOR' | 'ADMIN'
+    const validRoles = ['PATIENT', 'DOCTOR', 'ADMIN'];
+    const targetRole = validRoles.includes(role) ? role : 'PATIENT';
+
+    let demoDoctor = await Doctor.findOne({ name: 'Dr. Aarav Sharma' });
+    if (!demoDoctor) {
+      demoDoctor = await Doctor.create({
+        name: 'Dr. Aarav Sharma',
+        department: 'General Medicine',
+        roomNumber: '104',
+        avgConsultationMinutes: 8,
+      });
+    }
+
+    const demoConfigs = {
+      PATIENT: {
+        name: 'Rohan Verma (Demo Patient)',
+        email: 'demo.patient@mediqueue.app',
+        phone: '9876500001',
+        role: 'PATIENT',
+        doctorProfile: null,
+      },
+      DOCTOR: {
+        name: 'Dr. Aarav Sharma',
+        email: 'demo.doctor@mediqueue.app',
+        phone: '9876500002',
+        role: 'DOCTOR',
+        doctorProfile: demoDoctor._id,
+      },
+      ADMIN: {
+        name: 'Hospital Admin (Demo)',
+        email: 'demo.admin@mediqueue.app',
+        phone: '9876500003',
+        role: 'ADMIN',
+        doctorProfile: null,
+      },
+    };
+
+    const cfg = demoConfigs[targetRole];
+    let user = await User.findOne({ email: cfg.email });
+    if (!user) {
+      const hashedPassword = await bcrypt.hash('Demo@1234', 10);
+      user = await User.create({ ...cfg, password: hashedPassword });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const existingCount = await Appointment.countDocuments({ doctorId: demoDoctor._id, date: today });
+    if (existingCount === 0) {
+      await Appointment.create([
+        {
+          patientName: 'Ananya Singh',
+          patientPhone: '9876500011',
+          doctorId: demoDoctor._id,
+          date: today,
+          tokenNumber: 1,
+          status: 'WAITING',
+        },
+        {
+          patientName: 'Rohan Verma (Demo Patient)',
+          patientPhone: '9876500001',
+          doctorId: demoDoctor._id,
+          date: today,
+          tokenNumber: 2,
+          status: 'WAITING',
+        },
+      ]);
+      await broadcastQueueUpdate(demoDoctor._id, today);
+    }
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role, doctorProfile: user.doctorProfile },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        doctorProfile: user.doctorProfile,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Demo login failed', error: err.message });
+  }
+});
+
 app.get('/api/appointments/my', auth, async (req, res) => {
   const user = await User.findById(req.user.id);
   const appointments = await Appointment.find({ patientPhone: user.phone })
@@ -355,6 +448,31 @@ app.post('/api/appointments/:id/prescription', auth, authorizeRoles('DOCTOR', 'A
     res.json(appointment);
   } catch (err) {
     res.status(500).json({ message: 'Failed to save prescription', error: err.message });
+  }
+});
+
+// ================= QR TOKEN VERIFICATION =================
+app.get('/api/appointments/:id/verify', async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid token ID' });
+    }
+
+    const appointment = await Appointment.findById(req.params.id).populate('doctorId');
+    if (!appointment) {
+      return res.status(404).json({ message: 'Token not found' });
+    }
+
+    const aheadCount = await Appointment.countDocuments({
+      doctorId: appointment.doctorId._id,
+      date: appointment.date,
+      status: 'WAITING',
+      tokenNumber: { $lt: appointment.tokenNumber },
+    });
+
+    res.json({ appointment, aheadCount });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to verify token', error: err.message });
   }
 });
 
