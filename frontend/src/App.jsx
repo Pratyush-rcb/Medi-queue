@@ -60,7 +60,7 @@ function Navbar() {
                 <CalendarCheck size={16} /> New Booking
               </Link>
               <Link to="/my-tokens" className={navLinkClass('/my-tokens')}>
-                <Ticket size={16} /> My Tokens
+                <Ticket size={16} /> My Token &amp; Reports
               </Link>
             </>
           )}
@@ -72,7 +72,7 @@ function Navbar() {
           {user?.role === 'ADMIN' && (
             <>
               <Link to="/admin" className={navLinkClass('/admin')}>
-                <ShieldCheck size={16} /> Reception & Admin
+                <ShieldCheck size={16} /> Reception &amp; Admin
               </Link>
               <Link to="/doctor" className={navLinkClass('/doctor')}>
                 <Stethoscope size={16} /> Doctor View
@@ -130,6 +130,7 @@ export default function App() {
               <Route path="/verify/:id" element={<VerifyToken />} />
               <Route path="/" element={<ProtectedRoute allowedRoles={['PATIENT', 'ADMIN']}><PatientBooking /></ProtectedRoute>} />
               <Route path="/my-tokens" element={<ProtectedRoute allowedRoles={['PATIENT', 'ADMIN']}><MyTokens /></ProtectedRoute>} />
+              <Route path="/my-token-reports" element={<Navigate to="/my-tokens" replace />} />
               <Route path="/doctor" element={<ProtectedRoute allowedRoles={['DOCTOR', 'ADMIN']}><DoctorDashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute allowedRoles={['ADMIN']}><AdminPanel /></ProtectedRoute>} />
             </Routes>

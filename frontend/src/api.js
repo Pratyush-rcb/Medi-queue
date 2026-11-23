@@ -1,13 +1,20 @@
 import axios from 'axios';
 import { io } from 'socket.io-client';
 
-const isLocal =
-  window.location.hostname === 'localhost' ||
-  window.location.hostname === '127.0.0.1';
+const hostname = window.location.hostname;
+
+const isLanOrLocal =
+  hostname === 'localhost' ||
+  hostname === '127.0.0.1' ||
+  hostname.startsWith('192.168.') ||
+  hostname.startsWith('10.') ||
+  /^172\.(1[6-9]|2\d|3[0-1])\./.test(hostname);
 
 export const BACKEND_URL =
   import.meta.env.VITE_API_URL ||
-  (isLocal ? 'http://localhost:5001' : 'https://your-mediqueue-backend.onrender.com');
+  (isLanOrLocal
+    ? `http://${hostname}:5001`
+    : 'https://your-mediqueue-backend.onrender.com');
 
 export const api = axios.create({
   baseURL: `${BACKEND_URL}/api`,
