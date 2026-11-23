@@ -1,5 +1,8 @@
 # MediQueue — Smart OPD Queue & Token Management System
 
+🔗 **Live Demo:** [https://medi-queue-bice.vercel.app/login](https://medi-queue-bice.vercel.app/login)  
+📺 **Live Lobby Display:** [https://medi-queue-bice.vercel.app/lobby](https://medi-queue-bice.vercel.app/lobby)
+
 A full-stack hospital Outpatient Department (OPD) queue and token management platform built with the **MERN stack** and **Socket.io**. MediQueue eliminates waiting-room bottlenecks with real-time WebSocket queue synchronization, live lobby display boards, QR-code digital boarding passes, role-based portals, and AI-assisted outpatient prescriptions.
 
 ---
@@ -12,7 +15,7 @@ A full-stack hospital Outpatient Department (OPD) queue and token management pla
   - **Doctor Console (`/doctor`)**: Manage daily OPD queues, call next patients (`IN_CONSULTATION`), mark `NO_SHOW`, generate AI-drafted prescriptions (via Gemini API with clinical fallback), and complete consultations.
   - **Reception & Admin Panel (`/admin`)**: Manage doctors, room numbers, consultation durations, walk-in bookings, and priority/emergency token overrides.
 - **QR Code Token Verification (`/verify/:id`)**: Each booked token generates a unique QR code linking to a mobile-friendly digital pass displaying real-time queue status, patients ahead, estimated wait time, and issued clinical prescriptions.
-- **One-Click Demo Logins**: Built-in demo accounts for **Patient**, **Doctor**, and **Admin** roles for instant testing without manual signup.
+- **One-Click Demo Logins**: Built-in demo accounts on the login page for **Patient**, **Doctor**, and **Admin** roles for instant testing without manual signup.
 - **Email OTP Verification**: Secure account registration powered by time-limited OTP verification.
 
 ---
